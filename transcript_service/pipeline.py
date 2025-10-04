@@ -38,23 +38,49 @@ class TranscriptFetcher:
 
         try:
             from youtube_transcript_api import (
+                CouldNotRetrieveTranscript,
                 NoTranscriptFound,
                 TranscriptsDisabled,
+                TranslationLanguageNotAvailable,
+                VideoUnavailable,
+                VideoUnplayable,
+                YouTubeRequestFailed,
                 YouTubeTranscriptApi,
+                YouTubeTranscriptApiException,
             )
         except ImportError as exc:
-            raise TranscriptError('youtube-transcript-api is required to fetch transcripts') from exc
+            raise TranscriptError("youtube-transcript-api is required to fetch transcripts") from exc
 
         try:
-            transcript = YouTubeTranscriptApi.get_transcript(
-                video_id, languages=self.preferred_languages
-            )
-        except (TranscriptsDisabled, NoTranscriptFound) as exc:
+            api = YouTubeTranscriptApi()
+            languages = self.preferred_languages or ("en",)
+            transcript = api.fetch(video_id, languages=languages)
+        except TranscriptsDisabled as exc:
+            raise TranscriptError("Transcripts are disabled for this video") from exc
+        except NoTranscriptFound as exc:
             raise TranscriptError("Transcript is unavailable for this video") from exc
+        except TranslationLanguageNotAvailable as exc:
+            raise TranscriptError(
+                "Transcript is not available in the requested languages"
+            ) from exc
+        except VideoUnavailable as exc:
+            raise TranscriptError("The video is unavailable") from exc
+        except VideoUnplayable as exc:
+            raise TranscriptError("The video cannot be played") from exc
+        except CouldNotRetrieveTranscript as exc:
+            raise TranscriptError(
+                "Unable to retrieve the transcript from YouTube. Please try again later."
+            ) from exc
+        except YouTubeRequestFailed as exc:
+            raise TranscriptError("YouTube returned an error while fetching the transcript") from exc
+        except YouTubeTranscriptApiException as exc:
+            message = str(exc).strip() or "Failed to fetch transcript from YouTube"
+            raise TranscriptError(message) from exc
         except Exception as exc:  # pragma: no cover - pass through unexpected errors
             raise TranscriptError("Failed to fetch transcript") from exc
 
-        lines = [entry["text"].strip() for entry in transcript if entry["text"].strip()]
+        raw_entries = transcript.to_raw_data()
+        lines = [entry["text"].strip() for entry in raw_entries if entry["text"].strip()]
         return "\n".join(lines)
 
 
