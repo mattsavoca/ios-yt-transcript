@@ -21,16 +21,21 @@ your clipboard.
 
 ### 1. Install dependencies
 
+This project now uses [uv](https://docs.astral.sh/uv/) for dependency
+management. Install uv if you have not already, then sync the environment:
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+curl -LsSf https://astral.sh/uv/install.sh | sh  # only needed once per machine
+uv sync
 ```
+
+The command creates a `.venv` managed by uv and installs all runtime and
+development dependencies, including the Ruff linter.
 
 ### 2. Fetch a transcript from the command line
 
 ```bash
-python scripts/get_transcript.py "https://youtu.be/dQw4w9WgXcQ"
+uv run python scripts/get_transcript.py "https://youtu.be/dQw4w9WgXcQ"
 ```
 
 Use `--languages` if you want to prefer specific caption languages, for example
@@ -39,8 +44,13 @@ Use `--languages` if you want to prefer specific caption languages, for example
 ### 3. Run the server locally
 
 ```bash
-uvicorn server.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn server.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+> **Suggested network settings:** For a home-network deployment, point your
+> iOS Shortcut to `http://192.168.1.50:8000/transcript`. Adjust the IP to match
+> the static address of the machine hosting the server; the default port 8000 is
+> a good fit unless you already use it for another service.
 
 Send a request to the API:
 
@@ -75,7 +85,15 @@ will be fetched by your server and placed on the clipboard automatically.
 Run the unit tests to verify the URL parsing logic:
 
 ```bash
-pytest
+uv run pytest
+```
+
+## Linting
+
+Ruff is included as a development dependency. Run it before committing changes:
+
+```bash
+uv run ruff check --fix
 ```
 
 ## Notes
